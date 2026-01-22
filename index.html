@@ -46,6 +46,45 @@
       </button>
     </div>
 
+    <!-- Setup State (not configured) -->
+    <div id="setup" class="card hidden">
+      <h2>Setup Required</h2>
+      <p style="color: var(--gray-500); font-size: 0.875rem; margin-bottom: 1rem;">
+        Configure these URLs in your Authrim Admin panel, then edit <code>config.js</code>.
+      </p>
+
+      <div class="setup-urls">
+        <div class="setup-url-item">
+          <label>Callback URL</label>
+          <div class="setup-url-copy">
+            <code id="callback-url"></code>
+            <button class="btn-copy" onclick="copyUrl('callback-url')" title="Copy">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="setup-url-item">
+          <label>Allowed Origin</label>
+          <div class="setup-url-copy">
+            <code id="origin-url"></code>
+            <button class="btn-copy" onclick="copyUrl('origin-url')" title="Copy">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--gray-200);">
+        <p style="color: var(--gray-500); font-size: 0.75rem; margin-bottom: 0.5rem;">After configuring Admin panel:</p>
+        <ol style="color: var(--gray-600); font-size: 0.875rem; margin-left: 1.25rem;">
+          <li>Edit <code>config.js</code> with your issuer and clientId</li>
+          <li>Commit and push changes</li>
+          <li>Reload this page</li>
+        </ol>
+      </div>
+    </div>
+
     <!-- Error State -->
     <div id="error" class="card hidden">
       <div class="status status-error" id="error-message"></div>
@@ -65,8 +104,11 @@
     const $loading = document.getElementById('loading');
     const $loggedOut = document.getElementById('logged-out');
     const $loggedIn = document.getElementById('logged-in');
+    const $setup = document.getElementById('setup');
     const $error = document.getElementById('error');
     const $errorMessage = document.getElementById('error-message');
+    const $callbackUrl = document.getElementById('callback-url');
+    const $originUrl = document.getElementById('origin-url');
     const $userName = document.getElementById('user-name');
     const $userEmail = document.getElementById('user-email');
     const $userAvatar = document.getElementById('user-avatar');
@@ -77,6 +119,7 @@
       $loading.classList.add('hidden');
       $loggedOut.classList.add('hidden');
       $loggedIn.classList.add('hidden');
+      $setup.classList.add('hidden');
       $error.classList.add('hidden');
 
       switch (state) {
@@ -89,10 +132,30 @@
         case 'logged-in':
           $loggedIn.classList.remove('hidden');
           break;
+        case 'setup':
+          $setup.classList.remove('hidden');
+          break;
         case 'error':
           $error.classList.remove('hidden');
           break;
       }
+    }
+
+    // Show setup with URLs
+    function showSetup() {
+      $callbackUrl.textContent = window.location.origin + '/callback.html';
+      $originUrl.textContent = window.location.origin;
+      showState('setup');
+    }
+
+    // Copy URL to clipboard
+    function copyUrl(elementId) {
+      var text = document.getElementById(elementId).textContent;
+      navigator.clipboard.writeText(text).then(function() {
+        var btn = document.getElementById(elementId).nextElementSibling;
+        btn.style.color = 'var(--success)';
+        setTimeout(function() { btn.style.color = ''; }, 1000);
+      });
     }
 
     // Show user info
@@ -129,7 +192,7 @@
       try {
         // Check configuration
         if (!window.AUTHRIM_CONFIG?.issuer || window.AUTHRIM_CONFIG.issuer === 'https://your-tenant.authrim.com') {
-          showError('Please configure issuer and clientId in config.js');
+          showSetup();
           return;
         }
 
