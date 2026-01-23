@@ -82,20 +82,34 @@
           return;
         }
 
-        // Initialize SDK
+        // Initialize SDK with OAuth enabled
         var auth = await AuthrimWeb.createAuthrim({
           issuer: window.AUTHRIM_CONFIG.issuer,
           clientId: window.AUTHRIM_CONFIG.clientId,
+          enableOAuth: true,
         });
 
-        // Check for callback parameters
+        // First, try to handle as Silent Login callback
+        // This checks if the state parameter indicates a silent login flow
+        var silentResult = await auth.oauth.handleSilentCallback();
+
+        if (silentResult.status !== 'error' || silentResult.error !== 'not_silent_login') {
+          // This was a silent login callback - it handles its own redirects
+          // If we reach here, something unexpected happened
+          if (silentResult.status === 'error') {
+            showError('SSO Error: ' + silentResult.error + (silentResult.errorDescription ? ' - ' + silentResult.errorDescription : ''));
+          }
+          return;
+        }
+
+        // Not a silent login callback - handle as regular social login callback
         if (!auth.social.hasCallbackParams()) {
           // No callback parameters, redirect to home
           window.location.href = 'index.html';
           return;
         }
 
-        // Handle callback
+        // Handle regular social login callback
         var result = await auth.social.handleCallback();
 
         if (result.error) {
