@@ -31,7 +31,9 @@
 
     <!-- Logged In State -->
     <div id="logged-in" class="card hidden">
-      <h2>Signed In</h2>
+      <div class="status status-success" style="margin-bottom: 1rem;">
+        ✓ You are signed in
+      </div>
       <div class="user-info">
         <div class="user-avatar" id="user-avatar">?</div>
         <div class="user-details">
@@ -39,11 +41,23 @@
           <p id="user-email">-</p>
         </div>
       </div>
-      <a href="profile.html" class="btn btn-primary">View Profile</a>
-      <button id="logout-btn" class="btn btn-secondary">
-        <span class="btn-text">Sign Out</span>
-        <span class="btn-spinner hidden"><span class="spinner"></span></span>
-      </button>
+      <div class="session-info" style="margin: 1rem 0; padding: 0.75rem; background: var(--gray-50); border-radius: 0.5rem; font-size: 0.75rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+          <span style="color: var(--gray-500);">Session ID:</span>
+          <code id="session-id" style="color: var(--gray-700);">-</code>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--gray-500);">Expires:</span>
+          <span id="session-expires" style="color: var(--gray-700);">-</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <a href="profile.html" class="btn btn-primary" style="flex: 1;">View Profile</a>
+        <button id="logout-btn" class="btn btn-secondary" style="flex: 1;">
+          <span class="btn-text">Sign Out</span>
+          <span class="btn-spinner hidden"><span class="spinner"></span></span>
+        </button>
+      </div>
     </div>
 
     <!-- Setup State (not configured) -->
@@ -112,6 +126,8 @@
     const $userName = document.getElementById('user-name');
     const $userEmail = document.getElementById('user-email');
     const $userAvatar = document.getElementById('user-avatar');
+    const $sessionId = document.getElementById('session-id');
+    const $sessionExpires = document.getElementById('session-expires');
     const $logoutBtn = document.getElementById('logout-btn');
 
     // Switch state
@@ -159,10 +175,20 @@
     }
 
     // Show user info
-    function showUser(user) {
+    function showUser(user, session) {
       $userName.textContent = user.name || 'User';
       $userEmail.textContent = user.email || '-';
       $userAvatar.textContent = (user.name || user.email || '?').charAt(0).toUpperCase();
+
+      // Show session info
+      if (session) {
+        $sessionId.textContent = session.id ? session.id.substring(0, 8) + '...' : '-';
+        if (session.expiresAt) {
+          const expires = new Date(session.expiresAt);
+          $sessionExpires.textContent = expires.toLocaleString();
+        }
+      }
+
       showState('logged-in');
     }
 
@@ -212,7 +238,7 @@
         }
 
         if (data && data.user) {
-          showUser(data.user);
+          showUser(data.user, data.session);
         } else {
           showState('logged-out');
         }
