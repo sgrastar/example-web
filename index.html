@@ -222,11 +222,25 @@
           return;
         }
 
-        // Initialize SDK
+        // Initialize SDK with OAuth enabled for SSO
         const auth = await AuthrimWeb.createAuthrim({
           issuer: window.AUTHRIM_CONFIG.issuer,
           clientId: window.AUTHRIM_CONFIG.clientId,
+          enableOAuth: true,
         });
+
+        // Check for SSO error in URL (returned from callback after login_required)
+        const urlParams = new URLSearchParams(window.location.search);
+        const ssoError = urlParams.get('sso_error');
+
+        if (ssoError) {
+          // SSO attempt returned (login_required = IdP has no session)
+          console.log('SSO not available:', ssoError);
+          // Clean URL parameters
+          window.history.replaceState({}, '', window.location.pathname);
+          showState('logged-out');
+          return;
+        }
 
         // Check session
         const { data, error } = await auth.session.get();
@@ -238,8 +252,27 @@
         }
 
         if (data && data.user) {
+          // Logged in - clear sso_attempted flag (allows SSO retry after re-login)
+          sessionStorage.removeItem('sso_attempted');
           showUser(data.user, data.session);
         } else {
+          // Not logged in - try SSO (only on first access to prevent infinite loop)
+          const ssoAttempted = sessionStorage.getItem('sso_attempted');
+
+          if (!ssoAttempted && window.AUTHRIM_CONFIG.enableSSO !== false) {
+            sessionStorage.setItem('sso_attempted', 'true');
+
+            // Try silent SSO via top-level navigation
+            // - IdP has session → SSO success → callback → return here
+            // - IdP has no session → sso_error=login_required → return here
+            await auth.oauth.trySilentLogin({
+              onLoginRequired: 'return',
+              returnTo: window.location.href,
+            });
+            return; // Never reached (redirect happens)
+          }
+
+          // SSO already attempted or disabled - show login button
           showState('logged-out');
         }
 
@@ -249,6 +282,8 @@
 
           try {
             await auth.signOut();
+            // Clear SSO flag to allow retry on next visit
+            sessionStorage.removeItem('sso_attempted');
             showState('logged-out');
           } catch (e) {
             console.error('Logout error:', e);
